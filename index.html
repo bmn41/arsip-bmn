@@ -767,6 +767,145 @@ select option {
   .menu button .icon-wrapper { width: 48px; height: 48px; }
   .checkbox-grid { grid-template-columns: 1fr; }
 }
+   /* ========================================================
+   UI MANAJEMEN USER & PENGATURAN HAK AKSES (ROLE / USER)
+   ======================================================== */
+.section-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  box-shadow: var(--shadow);
+  margin-bottom: 22px;
+}
+
+.section-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+  border-bottom: 1.5px solid var(--border);
+}
+
+.section-card-header h3 {
+  margin: 0;
+  color: var(--primary);
+  font-size: 18px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge-role {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  background: rgba(59, 130, 246, 0.14);
+  color: var(--secondary);
+}
+.badge-role.admin {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+.badge-perm-custom {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+}
+.badge-perm-role {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(16, 185, 129, 0.14);
+  color: #059669;
+}
+
+.aksi-btn.reset-pass {
+  background: #0ea5e9;
+  box-shadow: 0 4px 10px rgba(14, 165, 233, 0.25);
+}
+
+.perm-tabs {
+  display: flex;
+  gap: 8px;
+  background: var(--bg);
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  margin-bottom: 18px;
+}
+
+.perm-tab-btn {
+  flex: 1;
+  padding: 11px 16px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: var(--transition);
+}
+
+.perm-tab-btn.active {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.perm-group-box {
+  background: rgba(150, 150, 150, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.perm-group-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.perm-mini-link {
+  background: none;
+  border: none;
+  color: var(--secondary);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.perm-mini-link:hover { text-decoration: underline; }
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -906,12 +1045,12 @@ select option {
       <div class="menu-section">
         <div class="menu-section-title">Sistem & Pengaturan</div>
         <div class="menu">
-          <button data-menu="lihat" onclick="loadMenu('lihat')" style="border-color:var(--secondary);"> 
+          <button data-menu="lihat" onclick="loadMenu('lihat')"> 
             <div class="icon-wrapper" style="background:#3b82f6; color:white;"><span class="material-symbols-outlined icon">manage_search</span></div> 
             <span class="menu-text">Lihat & Kelola Arsip</span>
           </button>
 
-          <button onclick="loadMenu('keamanan')" style="border-color:var(--secondary);">
+          <button data-menu="keamanan" onclick="loadMenu('keamanan')">
             <div class="icon-wrapper" style="background:#10b981; color:white;"><span class="material-symbols-outlined icon">security</span></div> 
             <span class="menu-text">Keamanan Akun</span>
           </button>
@@ -1129,27 +1268,29 @@ const MENU_ROUTES = {
   login:            { slug: "login",            title: "Login" }
 };
 
-let isRoutingFromHash = false;
+let currentActiveMenu = "dashboard";
+let menuLoadToken = 0;
+let ignoreNextHashChange = false;
+let allUsersCache = [];
 
 function updateTabAndUrl(menuKey) {
   const route = MENU_ROUTES[menuKey] || { slug: String(menuKey).toLowerCase(), title: menuKey };
   document.title = `${route.title} — ${APP_BASE_TITLE}`;
 
-  if (isRoutingFromHash) return;
-
   const targetHash = "#/" + route.slug;
   if (window.location.hash !== targetHash) {
+    ignoreNextHashChange = true;
     try {
-      window.history.pushState({ menu: menuKey }, document.title, targetHash);
+      window.history.replaceState({ menu: menuKey }, document.title, targetHash);
     } catch (e) {
       window.location.hash = targetHash;
     }
+    setTimeout(() => { ignoreNextHashChange = false; }, 80);
   }
 
-  // Jika dibuka langsung dari Google Apps Script, ubah juga hash URL bar utama GAS
   if (IS_GAS_ENV && google.script.history) {
     try {
-      google.script.history.push(null, null, route.slug);
+      google.script.history.replace(null, null, route.slug);
     } catch (e) {}
   }
 }
@@ -1165,15 +1306,18 @@ function getMenuKeyFromHash() {
   return "dashboard";
 }
 
-// Mendukung tombol Back & Forward di browser
 window.addEventListener("hashchange", () => {
+  if (ignoreNextHashChange) return;
   if (!localStorage.getItem("currentUser")) return;
   const menuKey = getMenuKeyFromHash();
-  isRoutingFromHash = true;
+  if (menuKey === currentActiveMenu) return;
+
   if (menuKey === "dashboard" || menuKey === "login") {
     backToDashboard();
   } else {
     loadMenu(menuKey);
+  }
+});
   }
   isRoutingFromHash = false;
 });
@@ -1337,6 +1481,21 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         loadDashboard();
         initChatSystem();
+         // Sinkronisasi otomatis jika Admin baru mengubah hak akses Role / User ini
+        if (user.username) {
+          google.script.run.withSuccessHandler(fresh => {
+            if (fresh && fresh.success) {
+              currentUserRole = fresh.role;
+              currentUserPerms = fresh.permissions || { menus: [], actions: [] };
+              user.role = fresh.role;
+              user.permissions = currentUserPerms;
+              user.theme = fresh.theme;
+              localStorage.setItem("currentUser", JSON.stringify(user));
+              applyPermissionsToDashboard();
+              applyUserPersonalTheme(fresh.theme, fresh.role);
+            }
+          }).getUserLatestPermissions(user.username);
+        }
       } else {
         // JIKA BELUM LOGIN: Tampilkan Login Card (Sudah otomatis pakai tema Admin dari step 2)
         document.getElementById("loginPage").style.display = "block";
@@ -1485,51 +1644,52 @@ function login(){
 
 // === FUNGSI MENYEMBUNYIKAN MENU BERDASARKAN ROLE ===
 function applyPermissionsToDashboard() {
-  // Daftar menu yang HANYA BOLEH diakses oleh ADMIN (Hardcoded Security)
   const adminOnlyMenus = ["user", "log", "tercetak"];
+  const allowedMenus = Array.isArray(currentUserPerms.menus) ? currentUserPerms.menus : [];
+  const allowedActions = Array.isArray(currentUserPerms.actions) ? currentUserPerms.actions : [];
 
   const allMenuBtns = document.querySelectorAll('.menu button[data-menu]');
   allMenuBtns.forEach(btn => {
     const m = btn.getAttribute('data-menu');
-    
+    if (m === "setting") return; // Ditangani terpisah di bawah
+
     if (adminOnlyMenus.includes(m)) {
-      // Jika ini menu khusus Admin, pastikan role benar-benar ADMIN
-      if (currentUserRole === "ADMIN") {
-        btn.style.display = "flex";
-      } else {
-        btn.style.display = "none";
-      }
+      btn.style.display = currentUserRole === "ADMIN" ? "flex" : "none";
+    } else if (currentUserRole === "ADMIN" || allowedMenus.includes("ALL") || allowedMenus.includes(m)) {
+      btn.style.display = "flex";
     } else {
-      // Untuk menu lainnya, ikuti aturan Role & Permissions dari Database
-      if(currentUserRole === "ADMIN" || currentUserPerms.menus.includes("ALL") || currentUserPerms.menus.includes(m)) {
-        btn.style.display = "flex";
-      } else {
-        btn.style.display = "none";
-      }
+      btn.style.display = "none";
     }
   });
 
-  const settingBtn = document.getElementById("settingMenuBtn");
+  // Pengaturan tombol Cetak Rekap berdasarkan hak aksi "cetak"
+  const cetakBtn = document.getElementById("cetakRekapBtn");
+  if (cetakBtn) {
+    const canCetak = currentUserRole === "ADMIN" || allowedActions.includes("cetak");
+    cetakBtn.style.display = canCetak ? "inline-flex" : "none";
+  }
 
-  if(currentUserRole === "ADMIN") {
-    settingBtn.style.display = "flex"; 
+  const settingBtn = document.getElementById("settingMenuBtn");
+  if (currentUserRole === "ADMIN") {
+    settingBtn.style.display = "flex";
     settingBtn.querySelector(".menu-text").innerText = "Pengaturan Sistem (Tema & Role)";
-    
-    // Memunculkan Tombol Status Sistem
     document.getElementById("adminToggleAppBtn").style.display = "flex";
     google.script.run.withSuccessHandler(status => {
-       updateToggleBtnUI(status.isActive);
+      updateToggleBtnUI(status.isActive);
     }).getAppStatus();
   } else {
-    // Sembunyikan khusus tombol status sistem untuk non-admin
     document.getElementById("adminToggleAppBtn").style.display = "none";
-    
-    // TAMPILKAN MENU TEMA UNTUK USER BIASA
-    settingBtn.style.display = "flex"; 
+    settingBtn.style.display = "flex";
     settingBtn.querySelector(".menu-text").innerText = "Pengaturan Tema Visual";
   }
-}
 
+  // Sembunyikan judul section jika semua tombol di dalamnya tersembunyi
+  document.querySelectorAll('#dashboardStatsView .menu-section').forEach(sec => {
+    const visibleBtns = Array.from(sec.querySelectorAll('.menu button'))
+      .filter(b => b.style.display !== 'none');
+    sec.style.display = visibleBtns.length > 0 ? "block" : "none";
+  });
+}
 // DASHBOARD (MENGISI ANGKA KE BADGE TIAP TOMBOL)
 function loadDashboard(){
   google.script.run.withSuccessHandler(counts => {
@@ -1564,42 +1724,54 @@ setInterval(() => {
 
 // MENU
 function loadMenu(menu){
-  logKeServer("BUKA MENU", `Membuka menu: ${menu.replace(/_/g, " ").toUpperCase()}`);
-
   const adminOnlyMenus = ["user", "log", "tercetak"];
   if (adminOnlyMenus.includes(menu) && currentUserRole !== "ADMIN") {
-      showToast("Akses Ditolak! Menu ini hanya untuk Administrator.", "error");
-      return; 
+    showToast("Akses Ditolak! Menu ini hanya untuk Administrator.", "error");
+    return;
   }
-  updateTabAndUrl(menu);
 
+  // Cegah akses menu yang tidak diizinkan (termasuk lewat URL langsung)
+  if (
+    currentUserRole !== "ADMIN" &&
+    menu !== "setting" &&
+    !currentUserPerms.menus.includes("ALL") &&
+    !currentUserPerms.menus.includes(menu)
+  ) {
+    showToast("Anda tidak memiliki izin untuk membuka menu ini.", "error");
+    backToDashboard();
+    return;
+  }
+
+  const myToken = ++menuLoadToken;
+  currentActiveMenu = menu;
+  updateTabAndUrl(menu);
   localStorage.setItem("currentActiveMenu", menu);
+  logKeServer("BUKA MENU", `Membuka menu: ${menu.replace(/_/g, " ").toUpperCase()}`);
+
+  const dashboardView = document.getElementById("dashboardStatsView");
+  if (dashboardView) dashboardView.style.display = "none";
 
   const content = document.getElementById("menuContent");
-
-  document.getElementById("dashboardStatsView").style.display = "none";
-
+  content.style.display = "block";
   content.innerHTML = `<button id="backDashboardBtn" onclick="backToDashboard()">← Kembali ke Dashboard</button>`;
 
-  if(menu==="lihat" || menu==="user" || menu==="log" || menu==="setting"){
+  if(menu==="lihat" || menu==="user" || menu==="log" || menu==="tercetak"){
     content.innerHTML += `<div id="loadingSpinner" style="margin-top:20px;text-align:center;">
       <span class="spinner" style="width:30px;height:30px;border-width:4px;"></span> Memuat data...
     </div>`;
   }
-  // --- MENU PENGATURAN (SETTING TEMA & ROLE) KHUSUS ADMIN ---
+  // --- MENU PENGATURAN (TEMA + HAK AKSES PER ROLE & PER USER) ---
   if(menu==="setting"){
     document.getElementById("loadingSpinner")?.remove();
-    
-    // Ambil nama tema dari sesi login aktif saat ini
+
     let localTheme = globalAdminTheme;
     if (currentUserRole !== "ADMIN") {
-        try {
-            const userData = JSON.parse(localStorage.getItem("currentUser"));
-            localTheme = userData.theme || globalAdminTheme;
-        } catch(e) {}
+      try {
+        const userData = JSON.parse(localStorage.getItem("currentUser"));
+        localTheme = userData.theme || globalAdminTheme;
+      } catch(e) {}
     }
 
-    // List 100 Tema dengan nama Keren & Estetik
     let themeOptions = [
       {v:"theme-default", n:"1. Default Original (Asli UNIMA)"}, {v:"theme-kementerian", n:"2. Kementerian (Navy/Gold Layout)"}, {v:"theme-dark", n:"3. Dark Mode"}, {v:"theme-glass", n:"4. Glassmorphism (Transparan)"},
       {v:"theme-nature", n:"5. Nature (Hijau Hutan)"}, {v:"theme-ocean", n:"6. Ocean (Biru Laut)"}, {v:"theme-sunset", n:"7. Sunset (Senja)"}, {v:"theme-corporate", n:"8. Corporate (Flat Profesional)"},
@@ -1624,89 +1796,114 @@ function loadMenu(menu){
       {v:"theme-96", n:"96. Glowing Ember"}, {v:"theme-97", n:"97. Space Gray"}, {v:"theme-98", n:"98. Ghost White Inverse"}, {v:"theme-99", n:"99. Dark Moccasin"}, {v:"theme-100", n:"100. Brutalist Black/White"}
     ];
 
-    let thmHtml = `<select id="themeSelect" style="padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); width: 100%; margin-bottom: 10px;">`;
+    let thmHtml = `<select id="themeSelect" style="padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); width:100%; margin-bottom:12px;">`;
     themeOptions.forEach(t => thmHtml += `<option value="${t.v}" ${localTheme === t.v ? "selected":""}>${t.n}</option>`);
-    thmHtml += `</select> <button onclick="simpanTema()" class="submit-btn" style="display:inline-block;">Terapkan Tema Personal</button>`;
+    thmHtml += `</select> <button onclick="simpanTema()" class="submit-btn" style="width:auto; padding:11px 22px;">${currentUserRole === "ADMIN" ? "Simpan Tema Global & Login" : "Terapkan Tema Personal"}</button>`;
 
-    // List Role untuk Diedit (Hanya digenerate tapi nanti disembunyikan untuk non-admin)
-    let rolesHtml = `<select id="roleSelect" onchange="loadRoleForm(this.value)" style="padding:12px; border-radius:8px; border:1px solid var(--border); width:100%; margin-top:5px; background:var(--bg); color:var(--text);"><option value="">-- Pilih Role Untuk Diedit --</option>`;
-    for(const r in appRoles) { rolesHtml += `<option value="${r}">${r}</option>`; }
-    rolesHtml += `</select>`;
-
-    // Logika HTML Role Management (Hanya Muncul jika ADMIN)
     let roleManagementHTML = "";
     if (currentUserRole === "ADMIN") {
+      let rolesOpt = `<option value="">-- Pilih Role Untuk Diedit --</option>`;
+      for (const r in appRoles) {
+        if (r !== "ADMIN") rolesOpt += `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`;
+      }
+
       roleManagementHTML = `
-        <div class="form-upload" style="margin-top: 20px;">
-          <h3 style="margin-top:0; color:var(--primary); border-bottom:1px solid var(--border); padding-bottom:10px;"><span class="material-symbols-outlined" style="vertical-align:middle;">admin_panel_settings</span> Manajemen Hak Akses (Role)</h3>
-          
-          <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
-             <div style="flex:1;">
-                <label style="font-size:13px; font-weight:bold;">Pilih Role yang sudah ada:</label>
-                ${rolesHtml}
-             </div>
-             <div style="flex:1; display:flex; align-items:flex-end;">
-                <button class="submit-btn" style="background:var(--success);" onclick="loadRoleForm('NEW_ROLE')">
-                   <span class="material-symbols-outlined" style="margin-right:5px;">add_circle</span> BUAT ROLE BARU
-                </button>
-             </div>
+        <div class="section-card">
+          <div class="section-card-header">
+            <div>
+              <h3><span class="material-symbols-outlined">admin_panel_settings</span> Manajemen Hak Akses (Role & Per User)</h3>
+              <p style="margin:4px 0 0 0; font-size:12px; opacity:0.75;">Atur menu yang tampil di dashboard serta tombol aksi (Upload, Download, Edit, Hapus, Cetak Rekap) secara global per Role atau khusus per User.</p>
+            </div>
           </div>
-          
-          <div id="roleFormArea" style="display:none; border:1px solid var(--border); padding:20px; border-radius:12px; background:rgba(0,0,0,0.02);">
-             <label style="font-size:12px; font-weight:bold;">Nama Role:</label>
-             <input type="text" id="roleNameInput" placeholder="Contoh: AUDITOR, STAF_ASET, MANAGER" style="font-weight:bold; margin-bottom:15px; border:1px solid var(--border); background:var(--card);">
-             
-             <h4 style="margin:0 0 10px 0; color:var(--primary);">Menu yang Diizinkan (Akan muncul di Dashboard):</h4>
-             <div class="checkbox-grid" id="menuCheckboxes">
-                 <label class="checkbox-item"><input type="checkbox" value="ALL" onchange="checkAllMenus(this)"> Semua Menu (ALL)</label>
-                 <label class="checkbox-item"><input type="checkbox" value="PERALATAN"> Peralatan</label>
-                 <label class="checkbox-item"><input type="checkbox" value="GEDUNG"> Gedung</label>
-                 <label class="checkbox-item"><input type="checkbox" value="LAINNYA"> Lainnya (Aset)</label>
-                 <label class="checkbox-item"><input type="checkbox" value="PERAWATAN"> Perawatan</label>
-                 <label class="checkbox-item"><input type="checkbox" value="BELANJA_LAINNYA"> Belanja Lainnya</label>
-                 <label class="checkbox-item"><input type="checkbox" value="BAST"> BAST BMN</label>
-                 <label class="checkbox-item"><input type="checkbox" value="LAPORAN_ASET"> Laporan Aset</label>
-                 <label class="checkbox-item"><input type="checkbox" value="KONTRAK"> Kontrak Persediaan</label>
-                 <label class="checkbox-item"><input type="checkbox" value="LAPORAN_PERS"> Laporan Persediaan</label>
-                 <label class="checkbox-item"><input type="checkbox" value="PERS_LAINNYA"> Persediaan Lainnya</label>
-                 <label class="checkbox-item"><input type="checkbox" value="SURAT_MASUK"> Surat Masuk</label>
-                 <label class="checkbox-item"><input type="checkbox" value="SURAT_KELUAR"> Surat Keluar</label>
-                 <label class="checkbox-item"><input type="checkbox" value="NOTA_PERMINTAAN"> Nota Permintaan</label>
-                 <label class="checkbox-item"><input type="checkbox" value="LAIN_LAIN"> Dokumen Lain-Lain</label>
-                 <label class="checkbox-item"><input type="checkbox" value="lihat"> Lihat Arsip (Pencarian)</label>
-               </div>
-             
-             <h4 style="margin:20px 0 10px 0; color:var(--primary);">Aksi yang Diizinkan (Dalam Menu "Lihat Arsip"):</h4>
-             <div class="checkbox-grid" id="actionCheckboxes">
-               <label class="checkbox-item"><input type="checkbox" value="upload"> Boleh Mengunggah (Upload)</label>
-               <label class="checkbox-item"><input type="checkbox" value="edit"> Boleh Mengedit Data</label>
-               <label class="checkbox-item"><input type="checkbox" value="delete"> Boleh Menghapus Data</label>
-               <label class="checkbox-item"><input type="checkbox" value="download"> Boleh Mengunduh (Download)</label>
-             </div>
-             
-             <div style="display:flex; gap:10px; margin-top:20px;">
-               <button class="submit-btn" style="flex:2;" onclick="simpanRole()">Simpan Konfigurasi Role</button>
-               <button class="submit-btn" id="btnHapusRole" style="flex:1; background:var(--error);" onclick="hapusRole()">Hapus Role</button>
-             </div>
+
+          <div class="perm-tabs">
+            <button type="button" id="tabBtnRole" class="perm-tab-btn active" onclick="switchPermTab('role')">
+              <span class="material-symbols-outlined" style="font-size:18px;">badge</span> Atur per Role
+            </button>
+            <button type="button" id="tabBtnUser" class="perm-tab-btn" onclick="switchPermTab('user')">
+              <span class="material-symbols-outlined" style="font-size:18px;">person_check</span> Atur Khusus per User
+            </button>
+          </div>
+
+          <!-- TAB 1: PER ROLE -->
+          <div id="permPanelRole">
+            <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:flex-end;">
+              <div style="flex:2; min-width:220px;">
+                <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:6px;">Pilih Role yang Ada:</label>
+                <select id="roleSelect" onchange="loadRoleForm(this.value)" style="padding:11px; border-radius:8px; border:1px solid var(--border); width:100%; background:var(--bg); color:var(--text);">
+                  ${rolesOpt}
+                </select>
+              </div>
+              <div style="flex:1; min-width:170px;">
+                <button class="submit-btn" style="background:var(--success); padding:11px 16px;" onclick="loadRoleForm('NEW_ROLE')">
+                  <span class="material-symbols-outlined" style="vertical-align:middle; font-size:18px;">add_circle</span> Buat Role Baru
+                </button>
+              </div>
+            </div>
+
+            <div id="roleFormArea" style="display:none; border:1px solid var(--border); padding:18px; border-radius:12px; background:rgba(0,0,0,0.02);">
+              <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:6px;">Nama Role:</label>
+              <input type="text" id="roleNameInput" placeholder="Contoh: AUDITOR, STAF_ASET, PIMPINAN" style="width:100%; padding:11px; border-radius:8px; font-weight:bold; margin-bottom:16px; border:1px solid var(--border); background:var(--card); color:var(--text); box-sizing:border-box;">
+
+              ${buildPermissionEditorHtml("role")}
+
+              <div style="display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;">
+                <button class="submit-btn" style="flex:2; min-width:180px;" onclick="simpanRole()">Simpan Konfigurasi Role</button>
+                <button class="submit-btn" id="btnHapusRole" style="flex:1; min-width:130px; background:var(--error);" onclick="hapusRole()">Hapus Role</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: PER USER -->
+          <div id="permPanelUser" style="display:none;">
+            <div style="margin-bottom:16px;">
+              <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:6px;">Pilih Pengguna (Non-Admin):</label>
+              <select id="userPermSelect" onchange="loadUserPermForm(this.value)" style="padding:11px; border-radius:8px; border:1px solid var(--border); width:100%; background:var(--bg); color:var(--text);">
+                <option value="">Memuat daftar pengguna...</option>
+              </select>
+            </div>
+
+            <div id="userPermFormArea" style="display:none; border:1px solid var(--border); padding:18px; border-radius:12px; background:rgba(0,0,0,0.02);">
+              <div id="userPermStatusBanner" style="padding:10px 14px; border-radius:8px; margin-bottom:15px; font-size:13px; font-weight:600;"></div>
+
+              ${buildPermissionEditorHtml("user")}
+
+              <div style="display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;">
+                <button class="submit-btn" style="flex:2; min-width:200px;" onclick="simpanUserPerms()">Simpan Hak Akses Khusus User</button>
+                <button class="submit-btn" id="btnResetUserPerm" style="flex:1; min-width:180px; background:var(--accent);" onclick="resetUserPermsToRole()">Kembalikan ke Default Role</button>
+              </div>
+            </div>
           </div>
         </div>`;
     }
 
     content.innerHTML += `
-      <div class="form-grid" style="grid-template-columns: 1fr; max-width: 800px; margin: 0 auto;">
-        <div class="form-upload">
-          <h3 style="margin-top:0; color:var(--primary); border-bottom:1px solid var(--border); padding-bottom:10px;"><span class="material-symbols-outlined" style="vertical-align:middle;">palette</span> Personalisasi Tema Tampilan</h3>
-          <p style="font-size:12px; margin-top:0; opacity:0.8;">Tema yang dipilih hanya akan berubah pada akun kamu saat ini.</p>
+      <div style="max-width: 900px; margin: 0 auto;">
+        <div class="section-card">
+          <div class="section-card-header">
+            <h3><span class="material-symbols-outlined">palette</span> Personalisasi Tema Tampilan</h3>
+          </div>
+          <p style="font-size:12px; margin-top:0; opacity:0.8;">${currentUserRole === "ADMIN" ? "Tema yang dipilih Admin menjadi tema bawaan halaman Login & default sistem." : "Tema yang dipilih hanya berlaku pada akun Anda sendiri."}</p>
           ${thmHtml}
         </div>
         ${roleManagementHTML}
       </div>
     `;
+
+    // Muat daftar user di background untuk Tab "Atur Khusus per User"
+    if (currentUserRole === "ADMIN") {
+      google.script.run.withSuccessHandler(res => {
+        if (myToken !== menuLoadToken) return;
+        allUsersCache = (res && res.users) ? res.users : [];
+        populateUserPermDropdown();
+      }).getUsers();
+    }
   }
   // --- MENU LOG AKTIVITAS (DIPERBAIKI) ---
   else if(menu==="log") {
     google.script.run
       .withSuccessHandler(res=>{
+        if (myToken !== menuLoadToken) return; // <-- TAMBAHKAN BARIS INI
         document.getElementById("loadingSpinner")?.remove();
         
         // Proteksi jika data gagal dimuat dari server
@@ -1760,8 +1957,8 @@ function loadMenu(menu){
     currentPage = 1;
 
     google.script.run.withSuccessHandler(res=>{
+      if (myToken !== menuLoadToken) return; // <-- TAMBAHKAN BARIS INI
       document.getElementById("loadingSpinner")?.remove();
-
       if(!res || !res.headers || res.headers.length === 0) {
         res = { headers: ["Nomor","Judul","Penyedia","Tahun","Tanggal","Keterangan","Link File","Uploader","Kategori"], rows: [] };
       }
@@ -1863,40 +2060,71 @@ function loadMenu(menu){
       runArsipFilterAndRender(1);
     }).getAllArsipData();
   }  
-  // --- MENU MANAJEMEN USER (KODE ASLI ANDA) ---
+  // --- MENU MANAJEMEN USER (RAPI, TANPA PASSWORD, + RESET PASSWORD) ---
   else if(menu==="user"){
     google.script.run.withSuccessHandler(res=>{
+      if (myToken !== menuLoadToken) return;
       document.getElementById("loadingSpinner")?.remove();
-      currentData = res.rows; 
-      
-      let rOpt = ""; for(const r in appRoles) rOpt += `<option value="${r}">${r}</option>`;
+      allUsersCache = (res && res.users) ? res.users : [];
 
-      let html="<h3 style='color:var(--primary);'>Daftar User</h3><div class='modern-table-container' style='overflow-x:auto;'><table class='modern-table'><thead><tr>";
-      res.headers.forEach(h=>html+="<th>"+h+"</th>");
-      html+="<th style='text-align:center;'>Aksi</th></tr></thead><tbody>";
-      res.rows.forEach((r,i)=>{
-        html+="<tr>"+r.map(c=>"<td>"+c+"</td>").join("")+
-        `<td><div class='action-cell'><button class="aksi-btn edit" onclick="editUser(${i})"><span class="material-symbols-outlined" style="font-size:18px;">edit</span></button>
-         <button class="aksi-btn delete" onclick="delUser(${i})"><span class="material-symbols-outlined" style="font-size:18px;">delete</span></button></div></td></tr>`;
-      });
-      html+="</tbody></table></div>";
-      html+=`
-      <div class="form-upload">
-        <h3 style="margin-top:0; color:var(--primary);">Tambah User Baru</h3>
-        <div class="form-grid">
-           <div><label style="font-size:12px; font-weight:bold;">Username</label><input id="newUser" placeholder="Username"></div>
-           <div><label style="font-size:12px; font-weight:bold;">Nama Lengkap</label><input id="fullName" placeholder="Nama Lengkap"></div>
-           <div><label style="font-size:12px; font-weight:bold;">Password</label><input id="newPass" type="password" placeholder="Password"></div>
-           <div><label style="font-size:12px; font-weight:bold;">Role (Hak Akses)</label><select id="newRole">${rOpt}<option value="ADMIN">ADMIN</option></select></div>
+      let rOpt = "";
+      for (const r in appRoles) {
+        if (r !== "ADMIN") rOpt += `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`;
+      }
+
+      content.innerHTML += `
+        <div class="section-card">
+          <div class="section-card-header">
+            <div>
+              <h3><span class="material-symbols-outlined">group</span> Manajemen Pengguna</h3>
+              <p style="margin:4px 0 0 0; font-size:12px; opacity:0.75;">Kelola akun pengguna, ubah role, atau reset password yang lupa kembali ke <b>123456</b>.</p>
+            </div>
+            <div class="global-search-box" style="max-width:320px; min-width:220px;">
+              <span class="material-symbols-outlined">search</span>
+              <input type="text" id="searchUserInput" placeholder="Cari username, nama, atau role..." oninput="renderUserListTable(this.value)">
+            </div>
+          </div>
+          <div id="userTableWrapper"></div>
         </div>
-        <button class="submit-btn" onclick="addUser()">Tambah User</button>
-      </div>`;
-      content.innerHTML += html;
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <h3><span class="material-symbols-outlined">person_add</span> Tambah Pengguna Baru</h3>
+          </div>
+          <div class="form-grid" style="margin-bottom:15px;">
+            <div>
+              <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:6px;">Username</label>
+              <input id="newUser" placeholder="Contoh: budi.santoso" style="width:100%; padding:11px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:6px;">Nama Lengkap</label>
+              <input id="fullName" placeholder="Nama lengkap pegawai" style="width:100%; padding:11px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:6px;">Password Awal</label>
+              <input id="newPass" type="password" placeholder="Masukkan password awal" style="width:100%; padding:11px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:6px;">Role (Hak Akses)</label>
+              <select id="newRole" style="width:100%; padding:11px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); box-sizing:border-box;">
+                ${rOpt}
+                <option value="ADMIN">ADMIN</option>
+              </select>
+            </div>
+          </div>
+          <button class="submit-btn" style="width:auto; padding:12px 26px; display:inline-flex; align-items:center; gap:8px;" onclick="addUser()">
+            <span class="material-symbols-outlined" style="font-size:18px;">add_circle</span> Tambah User
+          </button>
+        </div>
+      `;
+
+      renderUserListTable("");
     }).getUsers();
   }
   // --- MENU DOKUMEN TERCETAK (ADMIN) ---
   else if(menu === "tercetak") {
     google.script.run.withSuccessHandler(files => {
+      if (myToken !== menuLoadToken) return; // <-- TAMBAHKAN BARIS INI
       document.getElementById("loadingSpinner")?.remove();
       
       let html = `
@@ -2391,7 +2619,79 @@ function syncFiles() {
   });
 }
 
-// USER CRUD (KODE ASLI ANDA)
+// USER CRUD MODERN (TANPA PASSWORD + RESET 123456)
+function renderUserListTable(query = "") {
+  const wrapper = document.getElementById("userTableWrapper");
+  if (!wrapper) return;
+
+  const q = query.trim().toLowerCase();
+  const filtered = allUsersCache.filter(u =>
+    !q ||
+    u.username.toLowerCase().includes(q) ||
+    u.fullName.toLowerCase().includes(q) ||
+    u.role.toLowerCase().includes(q)
+  );
+
+  let html = `
+    <div class="modern-table-container" style="margin-bottom:0;">
+      <div style="overflow-x:auto;">
+        <table class="modern-table">
+          <thead>
+            <tr>
+              <th style="width:50px;">No</th>
+              <th>Username</th>
+              <th>Nama Lengkap</th>
+              <th style="width:130px;">Role</th>
+              <th style="width:165px;">Status Hak Akses</th>
+              <th style="width:160px; text-align:center;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+  if (filtered.length === 0) {
+    html += `<tr><td colspan="6" style="text-align:center; padding:24px; opacity:0.75;">Tidak ada pengguna yang ditemukan.</td></tr>`;
+  } else {
+    filtered.forEach((u, idx) => {
+      const isAdmin = u.role === "ADMIN";
+      const roleBadge = `<span class="badge-role ${isAdmin ? "admin" : ""}">${escapeHtml(u.role)}</span>`;
+      const permBadge = isAdmin
+        ? `<span class="badge-perm-role">Akses Penuh</span>`
+        : (u.hasCustomPerms
+            ? `<span class="badge-perm-custom"><span class="material-symbols-outlined" style="font-size:14px;">tune</span> Kustom Per User</span>`
+            : `<span class="badge-perm-role">Ikuti Role</span>`);
+
+      const resetBtn = !isAdmin
+        ? `<button class="aksi-btn reset-pass" onclick="confirmResetPassword('${escapeHtml(u.username)}', '${escapeHtml(u.fullName || u.username)}')" title="Reset Password ke 123456">
+             <span class="material-symbols-outlined" style="font-size:18px;">lock_reset</span>
+           </button>`
+        : "";
+
+      html += `
+        <tr>
+          <td class="col-center">${idx + 1}</td>
+          <td style="font-weight:700; color:var(--primary);">${escapeHtml(u.username)}</td>
+          <td>${escapeHtml(u.fullName || "-")}</td>
+          <td class="col-center">${roleBadge}</td>
+          <td class="col-center">${permBadge}</td>
+          <td>
+            <div class="action-cell">
+              <button class="aksi-btn edit" onclick="editUser(${u.rowIndex})" title="Edit User">
+                <span class="material-symbols-outlined" style="font-size:18px;">edit</span>
+              </button>
+              ${resetBtn}
+              <button class="aksi-btn delete" onclick="delUser(${u.rowIndex}, '${escapeHtml(u.username)}')" title="Hapus User">
+                <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
+              </button>
+            </div>
+          </td>
+        </tr>`;
+    });
+  }
+
+  html += `</tbody></table></div></div>`;
+  wrapper.innerHTML = html;
+}
+
 function addUser(){
   const username = document.getElementById("newUser").value.trim();
   const fullName = document.getElementById("fullName").value.trim();
@@ -2403,52 +2703,59 @@ function addUser(){
     return;
   }
 
+  showGlobalSpinner("Menambahkan user baru...");
   google.script.run.withSuccessHandler(()=>{
-    loadMenu("user"); 
+    hideGlobalSpinner();
     showToast("User berhasil ditambahkan!", "success");
+    loadMenu("user");
+  }).withFailureHandler(err => {
+    hideGlobalSpinner();
+    showToast("Gagal menambah user: " + err.message, "error");
   }).addUser(username, fullName, password, role);
 }
 
-function editUser(index){
-  const user = currentData[index];
-  const username = user[0];
-  const role = user[2];
-  const fullName = user[3] || ""; 
-  
-  let rOpt = ""; for(const r in appRoles) rOpt += `<option value="${r}" ${role===r?'selected':''}>${r}</option>`;
-  
+function editUser(rowIndex){
+  const user = allUsersCache.find(u => u.rowIndex === rowIndex);
+  if (!user) return;
+
+  let rOpt = "";
+  for (const r in appRoles) {
+    if (r !== "ADMIN") rOpt += `<option value="${escapeHtml(r)}" ${user.role===r?'selected':''}>${escapeHtml(r)}</option>`;
+  }
+
   const content = document.getElementById("menuContent");
   content.innerHTML = `
-    <div class="user-card" style="background:var(--card); border:1px solid rgba(0,0,0,0.1); padding:20px; border-radius:var(--radius);">
-      <h3 style="margin-top:0; color:var(--primary); display:flex; align-items:center; gap:8px;">
-        <span class="material-symbols-outlined">manage_accounts</span> Edit Pengguna
-      </h3>
-      <div class="user-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+    <button id="backDashboardBtn" onclick="loadMenu('user')">← Kembali ke Daftar User</button>
+    <div class="section-card" style="max-width:760px; margin:10px auto;">
+      <div class="section-card-header">
+        <h3><span class="material-symbols-outlined">manage_accounts</span> Edit Pengguna: ${escapeHtml(user.username)}</h3>
+      </div>
+      <div class="form-grid" style="margin-bottom:20px;">
         <div>
-          <label style="font-size:12px; font-weight:bold;">Username</label>
-          <input style="width:100%; padding:10px; border-radius:8px; border:1px solid #d1d5db;" id="editUser" value="${username}" readonly disabled title="Username tidak bisa diubah" style="background:rgba(0,0,0,0.05);">
+          <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:6px;">Username</label>
+          <input id="editUser" value="${escapeHtml(user.username)}" readonly disabled style="width:100%; padding:11px; border-radius:8px; border:1px solid var(--border); background:rgba(150,150,150,0.12); color:var(--text); box-sizing:border-box;">
         </div>
         <div>
-          <label style="font-size:12px; font-weight:bold;">Nama Lengkap</label>
-          <input style="width:100%; padding:10px; border-radius:8px; border:1px solid #d1d5db;" id="editFullName" placeholder="Masukkan Nama Lengkap" value="${fullName}">
+          <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:6px;">Nama Lengkap</label>
+          <input id="editFullName" value="${escapeHtml(user.fullName)}" placeholder="Masukkan Nama Lengkap" style="width:100%; padding:11px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); box-sizing:border-box;">
         </div>
         <div>
-          <label style="font-size:12px; font-weight:bold;">Password Baru</label>
-          <input style="width:100%; padding:10px; border-radius:8px; border:1px solid #d1d5db;" id="editPass" type="password" placeholder="(Kosongkan jika tidak diubah)">
+          <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:6px;">Password Baru (Opsional)</label>
+          <input id="editPass" type="password" placeholder="Kosongkan jika tidak ingin mengganti" style="width:100%; padding:11px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); box-sizing:border-box;">
         </div>
         <div>
-          <label style="font-size:12px; font-weight:bold;">Role (Akses)</label>
-          <select style="width:100%; padding:10px; border-radius:8px; border:1px solid #d1d5db;" id="editRole">
+          <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:6px;">Role (Akses)</label>
+          <select id="editRole" style="width:100%; padding:11px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); box-sizing:border-box;">
             ${rOpt}
-            <option value="ADMIN" ${role==="ADMIN"?"selected":""}>ADMIN</option>
+            <option value="ADMIN" ${user.role==="ADMIN"?"selected":""}>ADMIN</option>
           </select>
         </div>
       </div>
-      <div style="display:flex; gap:10px;">
-        <button class="submit-btn" style="width:auto; padding:10px 20px;" onclick="saveUser(${index})">
-          <span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle;">save</span> Simpan Perubahan
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="submit-btn" style="width:auto; padding:11px 22px; display:inline-flex; align-items:center; gap:6px;" onclick="saveUser(${rowIndex})">
+          <span class="material-symbols-outlined" style="font-size:18px;">save</span> Simpan Perubahan
         </button>
-        <button class="submit-btn" style="width:auto; padding:10px 20px; background:transparent; color:var(--text); border:1px solid var(--border);" onclick="loadMenu('user')">Batal</button>
+        <button class="submit-btn" style="width:auto; padding:11px 20px; background:transparent; color:var(--text); border:1px solid var(--border);" onclick="loadMenu('user')">Batal</button>
       </div>
     </div>
   `;
@@ -2468,15 +2775,44 @@ function saveUser(index){
   showGlobalSpinner("Menyimpan data pengguna...");
   google.script.run.withSuccessHandler(()=>{
     hideGlobalSpinner();
-    loadMenu("user"); 
     showToast("Data pengguna berhasil diperbarui!", "success");
+    loadMenu("user");
   }).withFailureHandler((err)=>{
     hideGlobalSpinner();
     showToast("Gagal update user: " + err.message, "error");
   }).updateUser(index, username, fullName, password, role);
 }
 
-function delUser(i){google.script.run.withSuccessHandler(()=>loadMenu("user")).deleteUser(i);}
+function confirmResetPassword(username, displayName) {
+  showConfirm(`Reset password milik "${displayName}" (${username}) kembali menjadi default "123456"?`, () => {
+    showGlobalSpinner("Mereset password...");
+    google.script.run.withSuccessHandler(res => {
+      hideGlobalSpinner();
+      if (res && res.success) {
+        showToast(res.message, "success", 4500);
+      } else {
+        showToast((res && res.message) || "Gagal mereset password.", "error");
+      }
+    }).withFailureHandler(err => {
+      hideGlobalSpinner();
+      showToast("Error reset password: " + err.message, "error");
+    }).resetUserPassword(username);
+  });
+}
+
+function delUser(rowIndex, username){
+  showConfirm(`Yakin ingin menghapus pengguna "${username || ''}" secara permanen?`, () => {
+    showGlobalSpinner("Menghapus user...");
+    google.script.run.withSuccessHandler(()=>{
+      hideGlobalSpinner();
+      showToast("User berhasil dihapus.", "success");
+      loadMenu("user");
+    }).withFailureHandler(err => {
+      hideGlobalSpinner();
+      showToast("Gagal menghapus user: " + err.message, "error");
+    }).deleteUser(rowIndex);
+  });
+}
 
 // FUNGSI MODAL CETAK REKAP TERBARU (KODE ASLI ANDA)
 function openModalCetak(){
@@ -2603,23 +2939,7 @@ function buildArsipTableShell(headers) {
     html += `<th style="width:125px; text-align:center;">Aksi</th>`;
   }
 
-  // Baris filter kolom (tidak akan ter-render ulang saat mengetik!)
-  html += `</tr><tr class="filter-row">`;
-  if (canDel) html += `<td></td>`;
-
-  arsipDisplayColumns.forEach(c => {
-    html += `<td>
-      <input class="filter-input-modern col-filter-input"
-             data-col-index="${c.index}"
-             value="${escapeHtml(activeFilters[c.index] || "")}"
-             oninput="onColumnFilterInput(${c.index}, this.value)"
-             placeholder="Filter ${escapeHtml(c.name || "")}...">
-    </td>`;
-  });
-
-  if (canDown || canEdit || canDel) html += `<td></td>`;
   html += `</tr></thead><tbody id="arsipTableBody"></tbody></table></div></div>`;
-
   container.innerHTML = html;
 }
 
@@ -2900,30 +3220,28 @@ function deleteFile(index){
 }
 
 function backToDashboard(){
+  menuLoadToken++; // Batalkan semua proses loadMenu yang mungkin masih loading di background
+  currentActiveMenu = "dashboard";
   updateTabAndUrl("dashboard");
-  document.getElementById("menuContent").innerHTML = "";
-  
-  // SAFE-CHECK: Pastikan tidak error jika elemen statistik lama sudah dihapus
-  const dashboardStats = document.getElementById("dashboardStats");
-  if(dashboardStats) {
-    dashboardStats.style.display = "grid"; 
+
+  const menuContent = document.getElementById("menuContent");
+  if (menuContent) {
+    menuContent.innerHTML = "";
+    menuContent.style.display = "none";
   }
-  
+
   const dashboardStatsView = document.getElementById("dashboardStatsView");
-  if(dashboardStatsView) {
+  if (dashboardStatsView) {
     dashboardStatsView.style.display = "block";
   }
 
-  const cetakRekapBtn = document.getElementById("cetakRekapBtn");
-  if(cetakRekapBtn) {
-    cetakRekapBtn.style.display = "inline-flex";
-  }
-
   const clockContainer = document.querySelector(".clock-calendar-container");
-  if(clockContainer) {
+  if (clockContainer) {
     clockContainer.style.display = "flex";
   }
-  loadDashboard(); // Paksa hitung ulang data terbaru
+
+  applyPermissionsToDashboard();
+  loadDashboard();
 }
 
 function showConfirm(message, onConfirm) {
@@ -3175,18 +3493,253 @@ function simpanRole(){
   }).saveAppConfig({theme: document.getElementById("themeSelect").value, roles: appRoles});
 }
 
+function buildPermissionEditorHtml(prefix) {
+  return `
+    <div id="${prefix}MenuCheckboxes">
+      <div class="perm-group-box">
+        <div class="perm-group-title">
+          <span>Menu yang Ditampilkan di Dashboard</span>
+          <div>
+            <button type="button" class="perm-mini-link" onclick="toggleGroupCheckboxes('${prefix}MenuCheckboxes', true)">Pilih Semua</button> |
+            <button type="button" class="perm-mini-link" onclick="toggleGroupCheckboxes('${prefix}MenuCheckboxes', false)">Kosongkan</button>
+          </div>
+        </div>
+        <div class="checkbox-grid" style="margin-bottom:10px;">
+          <label class="checkbox-item"><input type="checkbox" value="ALL" onchange="toggleAllMenuCb('${prefix}', this.checked)"> <b>Semua Menu (ALL)</b></label>
+          <label class="checkbox-item"><input type="checkbox" value="lihat"> Lihat & Kelola Arsip</label>
+          <label class="checkbox-item"><input type="checkbox" value="keamanan"> Keamanan Akun (Ganti Password)</label>
+        </div>
+
+        <div style="font-size:11px; font-weight:700; opacity:0.7; margin:10px 0 6px;">ASET TETAP</div>
+        <div class="checkbox-grid" style="margin-bottom:10px;">
+          <label class="checkbox-item"><input type="checkbox" value="PERALATAN"> Belanja Modal Peralatan</label>
+          <label class="checkbox-item"><input type="checkbox" value="GEDUNG"> Belanja Modal Gedung</label>
+          <label class="checkbox-item"><input type="checkbox" value="LAINNYA"> Belanja Modal Lainnya</label>
+          <label class="checkbox-item"><input type="checkbox" value="PERAWATAN"> Belanja Perawatan</label>
+          <label class="checkbox-item"><input type="checkbox" value="BELANJA_LAINNYA"> Belanja Lainnya</label>
+          <label class="checkbox-item"><input type="checkbox" value="BAST"> Dokumen BAST BMN</label>
+          <label class="checkbox-item"><input type="checkbox" value="LAPORAN_ASET"> Laporan Aset Tetap</label>
+        </div>
+
+        <div style="font-size:11px; font-weight:700; opacity:0.7; margin:10px 0 6px;">PERSEDIAAN & DOKUMEN LAINNYA</div>
+        <div class="checkbox-grid">
+          <label class="checkbox-item"><input type="checkbox" value="KONTRAK"> Belanja Barang Persediaan</label>
+          <label class="checkbox-item"><input type="checkbox" value="LAPORAN_PERS"> Laporan Persediaan</label>
+          <label class="checkbox-item"><input type="checkbox" value="PERS_LAINNYA"> Dokumen Persediaan Lainnya</label>
+          <label class="checkbox-item"><input type="checkbox" value="SURAT_MASUK"> Surat Masuk</label>
+          <label class="checkbox-item"><input type="checkbox" value="SURAT_KELUAR"> Surat Keluar</label>
+          <label class="checkbox-item"><input type="checkbox" value="NOTA_PERMINTAAN"> Nota Permintaan</label>
+          <label class="checkbox-item"><input type="checkbox" value="LAIN_LAIN"> Dokumen Lain-Lain</label>
+        </div>
+      </div>
+    </div>
+
+    <div id="${prefix}ActionCheckboxes">
+      <div class="perm-group-box" style="margin-bottom:0;">
+        <div class="perm-group-title">
+          <span>Tombol & Hak Aksi yang Dimunculkan</span>
+          <div>
+            <button type="button" class="perm-mini-link" onclick="toggleGroupCheckboxes('${prefix}ActionCheckboxes', true)">Pilih Semua</button> |
+            <button type="button" class="perm-mini-link" onclick="toggleGroupCheckboxes('${prefix}ActionCheckboxes', false)">Kosongkan</button>
+          </div>
+        </div>
+        <div class="checkbox-grid">
+          <label class="checkbox-item"><input type="checkbox" value="upload"> Tombol Upload Dokumen</label>
+          <label class="checkbox-item"><input type="checkbox" value="download"> Tombol Download / Lihat File</label>
+          <label class="checkbox-item"><input type="checkbox" value="edit"> Tombol Edit Arsip (+ Sinkron & Rename)</label>
+          <label class="checkbox-item"><input type="checkbox" value="delete"> Tombol Hapus Arsip (+ Hapus Massal)</label>
+          <label class="checkbox-item"><input type="checkbox" value="cetak"> Tombol Cetak Rekap (PDF / Excel)</label>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleGroupCheckboxes(containerId, checked) {
+  document.querySelectorAll(`#${containerId} input[type=checkbox]`).forEach(cb => cb.checked = checked);
+}
+
+function toggleAllMenuCb(prefix, checked) {
+  document.querySelectorAll(`#${prefix}MenuCheckboxes input[type=checkbox]`).forEach(cb => cb.checked = checked);
+}
+
+function switchPermTab(tab) {
+  const isRole = tab === "role";
+  document.getElementById("tabBtnRole")?.classList.toggle("active", isRole);
+  document.getElementById("tabBtnUser")?.classList.toggle("active", !isRole);
+  const pRole = document.getElementById("permPanelRole");
+  const pUser = document.getElementById("permPanelUser");
+  if (pRole) pRole.style.display = isRole ? "block" : "none";
+  if (pUser) pUser.style.display = isRole ? "none" : "block";
+}
+
+function applyPermsToCheckboxes(prefix, permObj) {
+  const menus = (permObj && Array.isArray(permObj.menus)) ? permObj.menus : [];
+  const actions = (permObj && Array.isArray(permObj.actions)) ? permObj.actions : [];
+  document.querySelectorAll(`#${prefix}MenuCheckboxes input[type=checkbox]`).forEach(cb => {
+    cb.checked = menus.includes("ALL") || menus.includes(cb.value);
+  });
+  document.querySelectorAll(`#${prefix}ActionCheckboxes input[type=checkbox]`).forEach(cb => {
+    cb.checked = actions.includes(cb.value);
+  });
+}
+
+function collectPermsFromCheckboxes(prefix) {
+  const allCb = document.querySelector(`#${prefix}MenuCheckboxes input[value="ALL"]`);
+  let menus = [];
+  if (allCb && allCb.checked) {
+    menus = ["ALL"];
+  } else {
+    document.querySelectorAll(`#${prefix}MenuCheckboxes input[type=checkbox]:checked`).forEach(cb => {
+      if (cb.value !== "ALL") menus.push(cb.value);
+    });
+  }
+  let actions = [];
+  document.querySelectorAll(`#${prefix}ActionCheckboxes input[type=checkbox]:checked`).forEach(cb => {
+    actions.push(cb.value);
+  });
+  return { menus, actions };
+}
+
+// --- TAB 1: ROLE ---
+function loadRoleForm(roleName){
+  const area = document.getElementById("roleFormArea");
+  if(!roleName) { area.style.display = "none"; return; }
+  area.style.display = "block";
+  const nameInput = document.getElementById("roleNameInput");
+  const btnHapus = document.getElementById("btnHapusRole");
+
+  if(roleName === "NEW_ROLE") {
+    nameInput.value = "";
+    nameInput.disabled = false;
+    if(btnHapus) btnHapus.style.display = "none";
+    applyPermsToCheckboxes("role", { menus: ["lihat", "keamanan"], actions: ["download"] });
+  } else {
+    nameInput.value = roleName;
+    nameInput.disabled = true;
+    if(btnHapus) btnHapus.style.display = roleName === "ADMIN" ? "none" : "block";
+    applyPermsToCheckboxes("role", appRoles[roleName] || { menus: [], actions: [] });
+  }
+}
+
+function simpanRole(){
+  const rn = document.getElementById("roleNameInput").value.trim().toUpperCase();
+  if(!rn) { showToast("Nama Role kosong!", "error"); return; }
+  if(rn === "ADMIN") { showToast("Role ADMIN adalah bawaan sistem dan tidak bisa diubah.", "error"); return; }
+
+  appRoles[rn] = collectPermsFromCheckboxes("role");
+  showGlobalSpinner("Menyimpan konfigurasi Role...");
+  google.script.run.withSuccessHandler(()=>{
+    hideGlobalSpinner();
+    showToast(`Konfigurasi Role "${rn}" berhasil disimpan!`, "success");
+    loadMenu("setting");
+  }).withFailureHandler(err => {
+    hideGlobalSpinner();
+    showToast("Gagal menyimpan Role: " + err.message, "error");
+  }).saveAppConfig({ theme: document.getElementById("themeSelect").value, roles: appRoles });
+}
+
 function hapusRole(){
   const rn = document.getElementById("roleNameInput").value.trim().toUpperCase();
   if(!rn || rn === "ADMIN") return;
   showConfirm(`Yakin ingin menghapus Role '${rn}' secara permanen?`, () => {
-     delete appRoles[rn];
-     showGlobalSpinner("Menghapus Role...");
-     google.script.run.withSuccessHandler(res=>{
-        hideGlobalSpinner(); showToast(`Role ${rn} berhasil dihapus!`); loadMenu('setting');
-     }).saveAppConfig({theme: document.getElementById("themeSelect").value, roles: appRoles});
+    delete appRoles[rn];
+    showGlobalSpinner("Menghapus Role...");
+    google.script.run.withSuccessHandler(()=>{
+      hideGlobalSpinner();
+      showToast(`Role ${rn} berhasil dihapus!`, "success");
+      loadMenu("setting");
+    }).saveAppConfig({ theme: document.getElementById("themeSelect").value, roles: appRoles });
   });
 }
 
+// --- TAB 2: PER USER ---
+function populateUserPermDropdown() {
+  const sel = document.getElementById("userPermSelect");
+  if (!sel) return;
+  const nonAdmins = allUsersCache.filter(u => u.role !== "ADMIN");
+  let html = `<option value="">-- Pilih Pengguna Untuk Diatur Hak Aksesnya --</option>`;
+  nonAdmins.forEach(u => {
+    const tag = u.hasCustomPerms ? "★ KUSTOM" : `Role: ${u.role}`;
+    html += `<option value="${escapeHtml(u.username)}">${escapeHtml(u.fullName || u.username)} (${escapeHtml(u.username)}) — [${tag}]</option>`;
+  });
+  sel.innerHTML = html;
+}
+
+function loadUserPermForm(username) {
+  const area = document.getElementById("userPermFormArea");
+  if (!username) { area.style.display = "none"; return; }
+
+  const user = allUsersCache.find(u => u.username === username);
+  if (!user) return;
+
+  area.style.display = "block";
+  const banner = document.getElementById("userPermStatusBanner");
+  const resetBtn = document.getElementById("btnResetUserPerm");
+
+  if (user.hasCustomPerms && user.customPerms) {
+    banner.style.background = "rgba(245, 158, 11, 0.16)";
+    banner.style.color = "#b45309";
+    banner.innerHTML = `Status: <b>Hak Akses Kustom Aktif</b> (Mengesampingkan aturan default Role <b>${escapeHtml(user.role)}</b>).`;
+    if (resetBtn) resetBtn.style.display = "inline-block";
+    applyPermsToCheckboxes("user", user.customPerms);
+  } else {
+    banner.style.background = "rgba(16, 185, 129, 0.14)";
+    banner.style.color = "#059669";
+    banner.innerHTML = `Status: <b>Mengikuti Default Role (${escapeHtml(user.role)})</b>. Centang/ubah pilihan di bawah lalu simpan untuk membuat hak akses khusus user ini.`;
+    if (resetBtn) resetBtn.style.display = "none";
+    applyPermsToCheckboxes("user", appRoles[user.role] || { menus: [], actions: [] });
+  }
+}
+
+function simpanUserPerms() {
+  const username = document.getElementById("userPermSelect").value;
+  if (!username) return;
+
+  const perms = collectPermsFromCheckboxes("user");
+  showGlobalSpinner("Menyimpan hak akses khusus user...");
+  google.script.run.withSuccessHandler(res => {
+    hideGlobalSpinner();
+    if (res && res.success) {
+      showToast(res.message, "success");
+      const u = allUsersCache.find(x => x.username === username);
+      if (u) { u.hasCustomPerms = true; u.customPerms = perms; }
+      populateUserPermDropdown();
+      document.getElementById("userPermSelect").value = username;
+      loadUserPermForm(username);
+    } else {
+      showToast((res && res.message) || "Gagal menyimpan hak akses.", "error");
+    }
+  }).withFailureHandler(err => {
+    hideGlobalSpinner();
+    showToast("Error: " + err.message, "error");
+  }).saveUserCustomPerms(username, perms);
+}
+
+function resetUserPermsToRole() {
+  const username = document.getElementById("userPermSelect").value;
+  if (!username) return;
+
+  showConfirm(`Kembalikan hak akses "${username}" agar mengikuti aturan default Role-nya?`, () => {
+    showGlobalSpinner("Mengembalikan ke default Role...");
+    google.script.run.withSuccessHandler(res => {
+      hideGlobalSpinner();
+      if (res && res.success) {
+        showToast(res.message, "success");
+        const u = allUsersCache.find(x => x.username === username);
+        if (u) { u.hasCustomPerms = false; u.customPerms = null; }
+        populateUserPermDropdown();
+        document.getElementById("userPermSelect").value = username;
+        loadUserPermForm(username);
+      } else {
+        showToast((res && res.message) || "Gagal mereset hak akses.", "error");
+      }
+    }).withFailureHandler(err => {
+      hideGlobalSpinner();
+      showToast("Error: " + err.message, "error");
+    }).saveUserCustomPerms(username, null);
+  });
+}
 // ================== FUNGSI MAINTENANCE (ON/OFF APLIKASI) ==================
 function updateToggleBtnUI(isActive) {
   const btn = document.getElementById("adminToggleAppBtn");
