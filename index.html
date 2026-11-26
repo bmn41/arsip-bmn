@@ -915,15 +915,16 @@ select option {
 
 <div id="loginPage" class="login-container" style="display:none;">
   <img src="https://lh3.googleusercontent.com/d/1ONrH5vnAsaMrAXz4E3ZiOIXTEUnxDJXw" alt="Logo UNIMA" onerror="this.src='https://unima.ac.id/assets/public/images/logo.png'" style="max-width:300px; margin-bottom:20px;">
-  <input type="text" id="username" placeholder="Username">
-  <input type="password" id="password" placeholder="Password">
-  <button id="loginBtn" onclick="login()">
-    <span id="loginText">Login</span>
-    <span id="loginSpinner" class="spinner" style="display:none;"></span>
-  </button>
+  <form id="loginForm" action="#" method="post" autocomplete="on" onsubmit="event.preventDefault(); login();">
+    <input type="text" id="username" name="username" placeholder="Username" autocomplete="username" required>
+    <input type="password" id="password" name="password" placeholder="Password" autocomplete="current-password" required>
+    <button type="submit" id="loginBtn">
+      <span id="loginText">Login</span>
+      <span id="loginSpinner" class="spinner" style="display:none;"></span>
+    </button>
+  </form>
   <p id="loginMsg" style="color:red;text-align:center;"></p>
 </div>
-
 <div id="appPage" style="display:none;">
   <div class="dashboard">
 
@@ -1563,9 +1564,6 @@ function showToast(message, type="success", duration=3000){
     setTimeout(() => toast.remove(), 400);
   }, duration);
 }
-
-document.getElementById("username").addEventListener("keypress", function(e){ if(e.key === "Enter") login(); });
-document.getElementById("password").addEventListener("keypress", function(e){ if(e.key === "Enter") login(); });
 
 // LOGIN (KODE ASLI ANDA + PERMISSIONS + INIT CHAT + PRIMING AUDIO)
 function login(){
