@@ -1891,7 +1891,7 @@ function loadMenu(menu){
     if (currentUserRole === "ADMIN") {
       google.script.run.withSuccessHandler(res => {
         if (myToken !== menuLoadToken) return;
-        allUsersCache = (res && res.users) ? res.users : [];
+        allUsersCache = normalizeUsersResponse(res);
         populateUserPermDropdown();
       }).getUsers();
     }
@@ -2062,7 +2062,7 @@ function loadMenu(menu){
     google.script.run.withSuccessHandler(res=>{
       if (myToken !== menuLoadToken) return;
       document.getElementById("loadingSpinner")?.remove();
-      allUsersCache = (res && res.users) ? res.users : [];
+      allUsersCache = normalizeUsersResponse(res);
 
       let rOpt = "";
       for (const r in appRoles) {
@@ -2614,6 +2614,34 @@ function syncFiles() {
       btn.innerText = "Sinkron Drive";
     }).syncDriveFiles(uploaderName);
   });
+}
+
+   function normalizeUsersResponse(res) {
+  if (!res) return [];
+  if (Array.isArray(res.users)) return res.users;
+  // Fallback otomatis jika backend masih mengembalikan format { headers, rows }
+  if (Array.isArray(res.rows)) {
+    return res.rows
+      .map((r, i) => {
+        const uname = String(r[0] || "").trim();
+        if (!uname) return null;
+        let customPerms = null;
+        if (r[6]) {
+          try { customPerms = JSON.parse(String(r[6]).trim()); } catch (e) {}
+        }
+        return {
+          rowIndex: i,
+          username: uname,
+          role: String(r[2] || "").trim().toUpperCase(),
+          fullName: String(r[3] || "").trim(),
+          theme: String(r[4] || "theme-default").trim(),
+          hasCustomPerms: customPerms !== null,
+          customPerms: customPerms
+        };
+      })
+      .filter(Boolean);
+  }
+  return [];
 }
 
 // USER CRUD MODERN (TANPA PASSWORD + RESET 123456)
