@@ -1318,9 +1318,6 @@ window.addEventListener("hashchange", () => {
     loadMenu(menuKey);
   }
 });
-  }
-  isRoutingFromHash = false;
-});
 
 // Helper keamanan HTML (mencegah input pecah karena tanda kutip ")
 function escapeHtml(str) {
@@ -1328,7 +1325,7 @@ function escapeHtml(str) {
   return String(str)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gtloadMenu(menu);")
+    .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
@@ -3450,47 +3447,6 @@ function simpanTema() {
       showToast("Terjadi kesalahan koneksi saat menyimpan tema.", "error");
     }).saveUserTheme(loginUsername, thm); // Memanggil script di code.gs
   }
-}
-
-function loadRoleForm(roleName){
-  const area = document.getElementById("roleFormArea");
-  if(!roleName) { area.style.display = "none"; return; }
-  area.style.display = "block";
-  const nameInput = document.getElementById("roleNameInput");
-  const btnHapus = document.getElementById("btnHapusRole");
-  const menuCbs = document.querySelectorAll("#menuCheckboxes input[type=checkbox]");
-  const actionCbs = document.querySelectorAll("#actionCheckboxes input[type=checkbox]");
-  
-  menuCbs.forEach(cb => cb.checked = false); actionCbs.forEach(cb => cb.checked = false);
-  
-  if(roleName === "NEW_ROLE") {
-    nameInput.value = ""; nameInput.disabled = false; 
-    if(btnHapus) btnHapus.style.display = "none";
-  } else {
-    nameInput.value = roleName; nameInput.disabled = true;
-    if(btnHapus) { btnHapus.style.display = roleName === "ADMIN" ? "none" : "block"; }
-    const p = appRoles[roleName] || {menus:[], actions:[]};
-    menuCbs.forEach(cb => { if(p.menus.includes("ALL") || p.menus.includes(cb.value)) cb.checked = true; });
-    actionCbs.forEach(cb => { if(p.actions.includes(cb.value)) cb.checked = true; });
-  }
-}
-
-function checkAllMenus(source){ document.querySelectorAll("#menuCheckboxes input[type=checkbox]").forEach(cb => cb.checked = source.checked); }
-
-function simpanRole(){
-  const rn = document.getElementById("roleNameInput").value.trim().toUpperCase();
-  if(!rn) { showToast("Nama Role kosong!","error"); return; }
-  if(rn === "ADMIN" && !document.getElementById("roleNameInput").disabled) { showToast("Role ADMIN adalah bawaan sistem, tidak bisa dibuat ulang!","error"); return;}
-  
-  let menus = [], actions = [];
-  document.querySelectorAll("#menuCheckboxes input[type=checkbox]:checked").forEach(cb => menus.push(cb.value));
-  document.querySelectorAll("#actionCheckboxes input[type=checkbox]:checked").forEach(cb => actions.push(cb.value));
-  
-  appRoles[rn] = {menus: menus, actions: actions};
-  showGlobalSpinner("Menyimpan Role...");
-  google.script.run.withSuccessHandler(res=>{
-     hideGlobalSpinner(); showToast("Role berhasil disimpan!"); loadMenu('setting');
-  }).saveAppConfig({theme: document.getElementById("themeSelect").value, roles: appRoles});
 }
 
 function buildPermissionEditorHtml(prefix) {
